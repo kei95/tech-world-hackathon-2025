@@ -1,4 +1,4 @@
-import { Heart, Clock, ChevronRight, UserCog, FileText } from 'lucide-react';
+import { Heart, Clock, ChevronRight, UserCog } from 'lucide-react';
 import { colors } from '../../lib/colors';
 import type { Patient } from '../../types';
 import { AlertFlag } from '../shared/AlertFlag';
@@ -59,10 +59,6 @@ export const PatientCard = ({ patient, onClick }: PatientCardProps) => (
       <div className="flex items-center gap-1.5 text-xs" style={{ color: colors.textMuted }}>
         <UserCog size={14} />
         <span>{patient.caregiver}</span>
-      </div>
-      <div className="flex items-center gap-1.5 text-xs" style={{ color: colors.textMuted }}>
-        <FileText size={14} />
-        <span>直近{patient.recentLogs}件</span>
       </div>
     </div>
   </div>
