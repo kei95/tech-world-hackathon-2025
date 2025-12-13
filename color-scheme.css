@@ -1,0 +1,42 @@
+:root {
+  /* Sage */
+  
+  /* Background */
+  --color-bg-primary: #FAFAF8;
+  --color-bg-secondary: #F5F4F0;
+  --color-bg-elevated: #FFFFFF;
+  
+  /* Primary */
+  --color-primary: #5D8A72;
+  --color-primary-hover: #4A7360;
+  --color-primary-light: #E8F0EB;
+  --color-primary-muted: #A8C5B5;
+  
+  /* Secondary */
+  --color-secondary: #B8A99A;
+  --color-secondary-light: #F0EBE6;
+  
+  /* Text */
+  --color-text-primary: #2C2C2C;
+  --color-text-secondary: #5C5C5C;
+  --color-text-muted: #8C8C8C;
+  
+  /* Alerts */
+  --color-alert-red: #D9534F;
+  --color-alert-red-light: #FAEDEC;
+  --color-alert-yellow: #D4A03C;
+  --color-alert-yellow-light: #FDF6E8;
+  
+  /* Success */
+  --color-success: #5D8A72;
+  --color-success-light: #E8F0EB;
+  
+  /* Border */
+  --color-border: #E5E3DD;
+  --color-border-light: #F0EEE9;
+  
+  /* Typography */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'M PLUS Rounded 1c', 'DM Sans', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', monospace;
+}
