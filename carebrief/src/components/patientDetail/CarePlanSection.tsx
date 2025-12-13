@@ -49,11 +49,16 @@ export const CarePlanSection: React.FC<CarePlanSectionProps> = ({
   const handleMarkPlanDone = async () => {
     try {
       setMarkingDone(true);
+      // eslint-disable-next-line no-console
+      console.log("POST /care-plans-done (plan) payload", {
+        uuid: planRemoteId,
+        user_id: userId,
+      });
       await fetch(`${FUNCTIONS_URL}/care-plans-done`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: planRemoteId,
+          uuid: planRemoteId,
           user_id: userId,
         }),
       });

@@ -102,6 +102,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const handleRevert = async () => {
     try {
       setReverting(true);
+      // eslint-disable-next-line no-console
+      console.log("POST /care-plans-pending payload", {
+        uuid: goal.uuid || stableUuid,
+        user_id: userId,
+      });
       await fetch(`${FUNCTIONS_URL}/care-plans-pending`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,6 +126,11 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const handleComplete = async () => {
     try {
       setCompleting(true);
+      // eslint-disable-next-line no-console
+      console.log("POST /care-plans-done payload", {
+        uuid: goal.uuid || stableUuid,
+        user_id: userId,
+      });
       await fetch(`${FUNCTIONS_URL}/care-plans-done`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -10,7 +10,6 @@ import {
   Sparkles,
   User,
   Activity,
-  Download,
 } from "lucide-react";
 import { colors } from "../lib/colors";
 import { patientDetail, careLogs } from "../data/mockData";
@@ -36,6 +35,7 @@ export default function PatientDetailPage() {
   // assess-risk レスポンス → CarePlan 変換の最小実装
   type RiskItem = {
     uuid?: string;
+    plan_uuid?: string;
     id?: number | string;
     level: string; // e.g. "alert" | "warning" | "none"
     title: string;
@@ -56,7 +56,7 @@ export default function PatientDetailPage() {
   const buildCarePlanFromRisks = (risks: RiskItem[]): CarePlan => {
     const goals: CarePlan["goals"] = risks.map((r, idx) => ({
       id: idx + 1,
-      uuid: r.uuid ?? "",
+      uuid: r.uuid ?? r.plan_uuid ?? "",
       category: r.title,
       goal: r.goal ?? r.title,
       completed:
@@ -75,7 +75,7 @@ export default function PatientDetailPage() {
       risks.length > 0 ? risks.map((r) => r.title).join(" / ") : "特記なし";
     const notes =
       "AI抽出の危険兆候に基づく自動生成プラン（初期版）。臨床判断で適宜修正してください。";
-    const planUuid = risks[0]?.uuid ?? "";
+    const planUuid = risks[0]?.uuid ?? risks[0]?.plan_uuid ?? "";
     return { uuid: planUuid, summary, goals, notes };
   };
 
@@ -95,7 +95,8 @@ export default function PatientDetailPage() {
     // 3) CarePlan風のオブジェクト: { uuid, goals: [...], summary?, notes? }
     if (data && Array.isArray(data.goals)) {
       const risks: RiskItem[] = (data.goals as any[]).map((g) => ({
-        uuid: g.uuid ?? g.id ?? undefined,
+        uuid: g.uuid ?? undefined,
+        plan_uuid: g.plan_uuid ?? undefined,
         level: g.level ?? "none",
         title: g.title ?? g.category ?? g.goal ?? "無題",
         goal: g.goal ?? g.title ?? g.category ?? "無題",
