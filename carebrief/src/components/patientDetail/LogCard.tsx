@@ -21,7 +21,7 @@ export const LogCard: React.FC<LogCardProps> = ({
     const checkOverflow = () => {
       if (contentRef.current) {
         setIsOverflowing(
-          contentRef.current.scrollHeight > contentRef.current.clientHeight,
+          contentRef.current.scrollHeight > contentRef.current.clientHeight
         );
       }
     };
@@ -33,7 +33,7 @@ export const LogCard: React.FC<LogCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-xl p-4 hover:shadow-md transition-shadow"
+      className="bg-white rounded-xl p-4"
       style={{ border: `1px solid ${colors.border}` }}
     >
       <div className="flex items-start justify-between mb-2">
