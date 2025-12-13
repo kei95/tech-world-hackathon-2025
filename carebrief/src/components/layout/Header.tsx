@@ -1,4 +1,4 @@
-import { Search, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { colors } from '../../lib/colors';
 
 interface HeaderProps {
@@ -20,18 +20,6 @@ export const Header = ({ alertCount }: HeaderProps) => {
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <div
-          className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl w-60"
-          style={{ backgroundColor: colors.bgSecondary }}
-        >
-          <Search size={18} color={colors.textMuted} />
-          <input
-            type="text"
-            placeholder="患者を検索..."
-            className="bg-transparent outline-none text-sm flex-1"
-            style={{ color: colors.textPrimary }}
-          />
-        </div>
         <button
           className="relative w-10 h-10 rounded-xl border flex items-center justify-center hover:bg-gray-50"
           style={{ borderColor: colors.border }}
