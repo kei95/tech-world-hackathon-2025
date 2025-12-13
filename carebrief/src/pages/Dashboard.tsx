@@ -31,7 +31,7 @@ export default function Dashboard() {
       style={{ backgroundColor: colors.bgSecondary, fontFamily: "'M PLUS Rounded 1c', sans-serif" }}
     >
       <main className="w-full min-h-screen flex flex-col">
-        <Header alertCount={0} />
+        <Header />
         <div className="p-8 flex-1">
           <div>
             <div className="flex items-center justify-between mb-4">

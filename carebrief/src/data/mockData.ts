@@ -106,10 +106,12 @@ export const careLogs: CareLog[] = [
 ];
 
 export const initialCarePlan: CarePlan = {
+  uuid: 'plan-001',
   summary: '山田花子様は現在、服薬管理と夜間の安全確保が最優先課題です。食事量の低下と精神面のケアにも注意が必要です。',
   goals: [
     {
       id: 1,
+      uuid: 'goal-001',
       category: '服薬管理',
       goal: '服薬漏れをゼロにし、自立した服薬習慣を確立する',
       completed: false,
@@ -123,6 +125,7 @@ export const initialCarePlan: CarePlan = {
     },
     {
       id: 2,
+      uuid: 'goal-002',
       category: '転倒予防',
       goal: '夜間の転倒事故をゼロにし、安全な夜間移動を習慣化する',
       completed: false,
@@ -137,6 +140,7 @@ export const initialCarePlan: CarePlan = {
     },
     {
       id: 3,
+      uuid: 'goal-003',
       category: '栄養管理',
       goal: '食事摂取量を7割以上に維持し、適切な栄養状態を保つ',
       completed: false,
@@ -150,6 +154,7 @@ export const initialCarePlan: CarePlan = {
     },
     {
       id: 4,
+      uuid: 'goal-004',
       category: '精神面のケア',
       goal: '孤独感を軽減し、社会的つながりを維持する',
       completed: false,
@@ -163,6 +168,7 @@ export const initialCarePlan: CarePlan = {
     },
     {
       id: 100,
+      uuid: 'goal-100',
       category: '環境整備',
       goal: 'バリアフリー化を完了し、安全な居住環境を維持する',
       completed: true,
