@@ -38,6 +38,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const [newAction, setNewAction] = useState<string>("");
   const [reverting, setReverting] = useState<boolean>(false);
   const [completing, setCompleting] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const FUNCTIONS_URL =
     (import.meta as any).env?.VITE_FUNCTIONS_URL ??
     "http://localhost:54321/functions/v1";
@@ -145,6 +146,30 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     } finally {
       setCompleting(false);
       onToggleComplete(goal.id);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      setDeleting(true);
+      // eslint-disable-next-line no-console
+      console.log("POST /care-plans-delete payload", {
+        uuid: goal.uuid || stableUuid,
+        user_id: userId,
+      });
+      await fetch(`${FUNCTIONS_URL}/care-plans-delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uuid: goal.uuid || stableUuid,
+          user_id: userId,
+        }),
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("care-plans-delete call failed", e);
+    } finally {
+      setDeleting(false);
+      onDelete(goal.id);
     }
   };
 
@@ -372,8 +397,9 @@ export const GoalCard: React.FC<GoalCardProps> = ({
                 <Edit3 size={14} color={colors.textMuted} />
               </button>
               <button
-                onClick={() => onDelete(goal.id)}
-                className="p-1.5 rounded-lg hover:bg-gray-100"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-60"
                 title="削除"
               >
                 <Trash2 size={14} color={colors.alertRed} />
