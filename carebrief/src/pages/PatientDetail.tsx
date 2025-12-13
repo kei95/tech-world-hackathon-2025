@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Heart,
   ArrowLeft,
@@ -10,29 +10,51 @@ import {
   Sparkles,
   User,
   Activity,
+  Download,
 } from "lucide-react";
 import { colors } from "../lib/colors";
-import { patientDetail, careLogs } from "../data/mockData";
 import { LogCard } from "../components/patientDetail/LogCard";
 import { CarePlanSection } from "../components/patientDetail/CarePlanSection";
-import type { CarePlan, GoalFormData } from "../types";
+import type { CareLog, CarePlan, GoalFormData } from "../types";
+import { useUserDetail } from "../hooks/useUserDetail";
+import { useLogsStream } from "../hooks/useLogsStream";
 
 type TabType = "logs" | "plan";
 
 export default function PatientDetailPage() {
   const navigate = useNavigate();
+  const { userId } = useParams<{ userId: string }>();
+  const {
+    patient,
+    careLogs,
+    setCareLogs,
+    carePlan,
+    setCarePlan,
+    loading,
+    error,
+  } = useUserDetail(userId || "");
 
   const [expandedLogs, setExpandedLogs] = useState<Record<number, boolean>>({});
   const [activeTab, setActiveTab] = useState<TabType>("logs");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
   const [carePlanLoading, setCarePlanLoading] = useState<boolean>(false);
   const [showConfirmGenerate, setShowConfirmGenerate] =
     useState<boolean>(false);
-  const FUNCTIONS_URL =
-    (import.meta as any).env?.VITE_FUNCTIONS_URL ??
-    "http://localhost:54321/functions/v1";
-  const userId: number | string = Number(patientDetail.id) || patientDetail.id;
+
+  // SSEで新しいログを受信したら先頭に追加
+  const handleNewLog = useCallback(
+    (newLog: CareLog) => {
+      setCareLogs((prev) => [newLog, ...prev]);
+    },
+    [setCareLogs]
+  );
+
+  // SSE接続
+  useLogsStream({
+    userId: userId || "",
+    onNewLog: handleNewLog,
+    enabled: !!userId,
+  });
 
   // assess-risk レスポンス → CarePlan 変換の最小実装
   type RiskItem = {
@@ -57,7 +79,7 @@ export default function PatientDetailPage() {
   };
   const buildCarePlanFromRisks = (risks: RiskItem[]): CarePlan => {
     const goals: CarePlan["goals"] = risks.map((r, idx) => ({
-      id: idx + 1,
+      id: typeof r.id === "number" ? r.id : idx + 1,
       uuid: r.uuid ?? r.plan_uuid ?? "",
       category: r.title,
       goal: r.goal ?? r.title,
@@ -123,7 +145,12 @@ export default function PatientDetailPage() {
     return null;
   }
 
+  const FUNCTIONS_URL =
+    (import.meta as any).env?.VITE_FUNCTIONS_URL ??
+    "http://localhost:54321/functions/v1";
+
   async function loadCarePlanFromServer() {
+    if (!userId) return;
     try {
       setCarePlanLoading(true);
       const url = `${FUNCTIONS_URL}/care-plans?user_id=${encodeURIComponent(
@@ -142,7 +169,6 @@ export default function PatientDetailPage() {
       if (plan) {
         setCarePlan(plan);
       } else {
-        // 想定外形式は無視（必要ならここで別形式のマッピングを追加）
         // eslint-disable-next-line no-console
         console.warn("care-plans: unsupported response shape");
       }
@@ -164,6 +190,7 @@ export default function PatientDetailPage() {
 
   const toggleLog = (id: number) =>
     setExpandedLogs((prev) => ({ ...prev, [id]: !prev[id] }));
+
   const handleClickGenerate = () => {
     if (isGenerating) return;
     const hasIncomplete =
@@ -174,11 +201,12 @@ export default function PatientDetailPage() {
     }
     void handleGeneratePlan();
   };
+
   const handleGeneratePlan = async () => {
     setIsGenerating(true);
     try {
       const form = new FormData();
-      form.append("user_id", String(userId));
+      form.append("user_id", String(userId || patient?.id || "1"));
       const res = await fetch(`${FUNCTIONS_URL}/assess-risk`, {
         method: "POST",
         body: form,
@@ -205,10 +233,12 @@ export default function PatientDetailPage() {
       setIsGenerating(false);
     }
   };
+
   const confirmAndGenerate = () => {
     setShowConfirmGenerate(false);
     void handleGeneratePlan();
   };
+
   const handleToggleGoal = (goalId: number) => {
     setCarePlan((prev) =>
       prev
@@ -269,6 +299,28 @@ export default function PatientDetailPage() {
     );
   };
 
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: colors.bgSecondary }}
+      >
+        <p style={{ color: colors.textMuted }}>読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: colors.bgSecondary }}
+      >
+        <p style={{ color: colors.textMuted }}>エラーが発生しました</p>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -302,11 +354,10 @@ export default function PatientDetailPage() {
                   className="text-base font-bold"
                   style={{ color: colors.textPrimary }}
                 >
-                  {patientDetail.name}
+                  {patient.name}
                 </h1>
                 <p className="text-xs" style={{ color: colors.textMuted }}>
-                  {patientDetail.age}歳 · {patientDetail.gender} ·{" "}
-                  {patientDetail.careLevel}
+                  {patient.age}歳 · {patient.gender} · {patient.careLevel}
                 </p>
               </div>
             </div>
@@ -399,7 +450,7 @@ export default function PatientDetailPage() {
                     </div>
                     <CarePlanSection
                       plan={carePlan}
-                      userId={userId}
+                      userId={userId || ""}
                       onToggleGoal={handleToggleGoal}
                       onEditGoal={handleEditGoal}
                       onDeleteGoal={handleDeleteGoal}
@@ -484,7 +535,7 @@ export default function PatientDetailPage() {
                     className="text-xs"
                     style={{ color: colors.textSecondary }}
                   >
-                    {patientDetail.phone}
+                    {patient.phone}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -493,7 +544,7 @@ export default function PatientDetailPage() {
                     className="text-xs"
                     style={{ color: colors.textSecondary }}
                   >
-                    {patientDetail.address}
+                    {patient.address}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -502,7 +553,7 @@ export default function PatientDetailPage() {
                     className="text-xs"
                     style={{ color: colors.textSecondary }}
                   >
-                    担当: {patientDetail.caregiver}
+                    担当: {patient.caregiver}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -511,7 +562,7 @@ export default function PatientDetailPage() {
                     className="text-xs"
                     style={{ color: colors.textSecondary }}
                   >
-                    開始日: {patientDetail.startDate}
+                    開始日: {patient.startDate}
                   </span>
                 </div>
               </div>
