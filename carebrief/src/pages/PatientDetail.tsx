@@ -27,6 +27,8 @@ export default function PatientDetailPage() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
   const [carePlanLoading, setCarePlanLoading] = useState<boolean>(false);
+  const [showConfirmGenerate, setShowConfirmGenerate] =
+    useState<boolean>(false);
   const FUNCTIONS_URL =
     (import.meta as any).env?.VITE_FUNCTIONS_URL ??
     "http://localhost:54321/functions/v1";
@@ -162,6 +164,16 @@ export default function PatientDetailPage() {
 
   const toggleLog = (id: number) =>
     setExpandedLogs((prev) => ({ ...prev, [id]: !prev[id] }));
+  const handleClickGenerate = () => {
+    if (isGenerating) return;
+    const hasIncomplete =
+      !!carePlan && carePlan.goals.some((g) => g.completed !== true);
+    if (hasIncomplete) {
+      setShowConfirmGenerate(true);
+      return;
+    }
+    void handleGeneratePlan();
+  };
   const handleGeneratePlan = async () => {
     setIsGenerating(true);
     try {
@@ -192,6 +204,10 @@ export default function PatientDetailPage() {
     } finally {
       setIsGenerating(false);
     }
+  };
+  const confirmAndGenerate = () => {
+    setShowConfirmGenerate(false);
+    void handleGeneratePlan();
   };
   const handleToggleGoal = (goalId: number) => {
     setCarePlan((prev) =>
@@ -296,7 +312,7 @@ export default function PatientDetailPage() {
             </div>
           </div>
           <button
-            onClick={handleGeneratePlan}
+            onClick={handleClickGenerate}
             disabled={isGenerating}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white hover:opacity-90 disabled:opacity-60"
             style={{ backgroundColor: colors.primary }}
@@ -437,7 +453,7 @@ export default function PatientDetailPage() {
                       介護計画の叩き台を自動生成します
                     </p>
                     <button
-                      onClick={handleGeneratePlan}
+                      onClick={handleClickGenerate}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white"
                       style={{ backgroundColor: colors.primary }}
                     >
@@ -503,6 +519,48 @@ export default function PatientDetailPage() {
           </div>
         </div>
       </div>
+      {showConfirmGenerate && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-sm mx-4 rounded-xl p-4 bg-white"
+            style={{ border: `1px solid ${colors.border}` }}
+          >
+            <h3
+              className="text-sm font-semibold mb-2"
+              style={{ color: colors.textPrimary }}
+            >
+              現在の介護計画が消えます
+            </h3>
+            <p className="text-xs mb-4" style={{ color: colors.textSecondary }}>
+              未完了の介護計画があります。新しく生成すると現在の未完了の計画は消去されます。続行しますか？
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowConfirmGenerate(false)}
+                className="px-3 py-1.5 rounded-lg text-xs"
+                style={{
+                  border: `1px solid ${colors.border}`,
+                  color: colors.textSecondary,
+                }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmAndGenerate}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                style={{ backgroundColor: colors.primary }}
+              >
+                続行して生成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
