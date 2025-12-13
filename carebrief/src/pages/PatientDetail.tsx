@@ -1,31 +1,61 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heart, ArrowLeft, Phone, MapPin, Calendar,
   FileText, Sparkles, User, Activity, Download
 } from 'lucide-react';
 import { colors } from '../lib/colors';
-import { patientDetail, careLogs, initialCarePlan } from '../data/mockData';
+import { useUserDetail } from '../hooks/useUserDetail';
+import { useLogsStream } from '../hooks/useLogsStream';
 import { LogCard } from '../components/patientDetail/LogCard';
 import { CarePlanSection } from '../components/patientDetail/CarePlanSection';
-import type { CarePlan, GoalFormData } from '../types';
+import type { GoalFormData, CareLog } from '../types';
 
 type TabType = 'logs' | 'plan';
 
 export default function PatientDetailPage() {
   const navigate = useNavigate();
+  const { userId } = useParams<{ userId: string }>();
+  const { patient, careLogs, setCareLogs, carePlan, setCarePlan, loading, error } = useUserDetail(userId || '');
 
   const [expandedLogs, setExpandedLogs] = useState<Record<number, boolean>>({});
   const [activeTab, setActiveTab] = useState<TabType>('logs');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
+
+  // SSEで新しいログを受信したら先頭に追加
+  const handleNewLog = useCallback((newLog: CareLog) => {
+    setCareLogs((prev) => [newLog, ...prev]);
+  }, [setCareLogs]);
+
+  // SSE接続
+  useLogsStream({
+    userId: userId || '',
+    onNewLog: handleNewLog,
+    enabled: !!userId,
+  });
 
   const toggleLog = (id: number) => setExpandedLogs((prev) => ({ ...prev, [id]: !prev[id] }));
-  const handleGeneratePlan = () => { setIsGenerating(true); setTimeout(() => { setCarePlan(initialCarePlan); setIsGenerating(false); setActiveTab('plan'); }, 2000); };
+  const handleGeneratePlan = () => { setIsGenerating(true); setTimeout(() => { setCarePlan(carePlan); setIsGenerating(false); setActiveTab('plan'); }, 2000); };
   const handleToggleGoal = (goalId: number) => { setCarePlan(prev => prev ? { ...prev, goals: prev.goals.map(goal => goal.id === goalId ? { ...goal, completed: !goal.completed, completedDate: !goal.completed ? '2024年12月13日' : null } : goal) } : null); };
   const handleEditGoal = (goalId: number, data: GoalFormData) => { setCarePlan(prev => prev ? { ...prev, goals: prev.goals.map(goal => goal.id === goalId ? { ...goal, ...data } : goal) } : null); };
   const handleDeleteGoal = (goalId: number) => { setCarePlan(prev => prev ? { ...prev, goals: prev.goals.filter(goal => goal.id !== goalId) } : null); };
   const handleAddGoal = (data: GoalFormData) => { setCarePlan(prev => prev ? { ...prev, goals: [...prev.goals, { id: Date.now(), category: data.category, goal: data.goal, level: data.level, actions: data.actions, completed: false, completedDate: null }] } : null); };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.bgSecondary }}>
+        <p style={{ color: colors.textMuted }}>読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.bgSecondary }}>
+        <p style={{ color: colors.textMuted }}>エラーが発生しました</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ backgroundColor: colors.bgSecondary, minHeight: '100vh', fontFamily: "system-ui, sans-serif" }}>
@@ -35,7 +65,7 @@ export default function PatientDetailPage() {
             <button onClick={() => navigate('/admin')} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-50" style={{ border: `1px solid ${colors.border}` }}><ArrowLeft size={16} color={colors.textSecondary} /></button>
             <div className="flex items-center gap-2.5">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: colors.primaryLight }}><Heart size={20} color={colors.primary} /></div>
-              <div><h1 className="text-base font-bold" style={{ color: colors.textPrimary }}>{patientDetail.name}</h1><p className="text-xs" style={{ color: colors.textMuted }}>{patientDetail.age}歳 · {patientDetail.gender} · {patientDetail.careLevel}</p></div>
+              <div><h1 className="text-base font-bold" style={{ color: colors.textPrimary }}>{patient.name}</h1><p className="text-xs" style={{ color: colors.textMuted }}>{patient.age}歳 · {patient.gender} · {patient.careLevel}</p></div>
             </div>
           </div>
           <button onClick={handleGeneratePlan} disabled={isGenerating} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-white hover:opacity-90 disabled:opacity-60" style={{ backgroundColor: colors.primary }}><Sparkles size={14} />{isGenerating ? '生成中...' : '介護計画を生成'}</button>
@@ -81,10 +111,10 @@ export default function PatientDetailPage() {
             <div className="bg-white rounded-xl p-3" style={{ border: `1px solid ${colors.border}` }}>
               <h3 className="text-xs font-semibold mb-2.5" style={{ color: colors.textPrimary }}>基本情報</h3>
               <div className="space-y-2">
-                <div className="flex items-center gap-2"><Phone size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>{patientDetail.phone}</span></div>
-                <div className="flex items-center gap-2"><MapPin size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>{patientDetail.address}</span></div>
-                <div className="flex items-center gap-2"><User size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>担当: {patientDetail.caregiver}</span></div>
-                <div className="flex items-center gap-2"><Calendar size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>開始日: {patientDetail.startDate}</span></div>
+                <div className="flex items-center gap-2"><Phone size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>{patient.phone}</span></div>
+                <div className="flex items-center gap-2"><MapPin size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>{patient.address}</span></div>
+                <div className="flex items-center gap-2"><User size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>担当: {patient.caregiver}</span></div>
+                <div className="flex items-center gap-2"><Calendar size={14} color={colors.textMuted} /><span className="text-xs" style={{ color: colors.textSecondary }}>開始日: {patient.startDate}</span></div>
               </div>
             </div>
           </div>

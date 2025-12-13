@@ -1,12 +1,29 @@
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { colors } from '../lib/colors';
-import { patients } from '../data/mockData';
+import { useUsers } from '../hooks/useUsers';
 import { Header } from '../components/layout/Header';
 import { PatientCard } from '../components/dashboard/PatientCard';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { users: patients, loading, error } = useUsers();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.bgSecondary }}>
+        <p style={{ color: colors.textMuted }}>読み込み中...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: colors.bgSecondary }}>
+        <p style={{ color: colors.textMuted }}>エラーが発生しました</p>
+      </div>
+    );
+  }
 
   return (
     <div
