@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -27,6 +27,7 @@ export default function PatientDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>("logs");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
+  const [carePlanLoading, setCarePlanLoading] = useState<boolean>(false);
   const FUNCTIONS_URL =
     (import.meta as any).env?.VITE_FUNCTIONS_URL ??
     "http://localhost:54321/functions/v1";
@@ -41,6 +42,10 @@ export default function PatientDetailPage() {
     goal?: string;
     tasks?: string[];
     description?: string;
+    status?: string; // "done" | "pending" など
+    completed?: boolean;
+    completedAt?: string;
+    completed_at?: string;
   };
   const toAlertLevel = (level: string): CarePlan["goals"][number]["level"] => {
     const lv = String(level).toLowerCase();
@@ -54,8 +59,10 @@ export default function PatientDetailPage() {
       uuid: r.uuid ?? "",
       category: r.title,
       goal: r.goal ?? r.title,
-      completed: false,
-      completedDate: null,
+      completed:
+        r.completed === true ||
+        (typeof r.status === "string" && r.status.toLowerCase() === "done"),
+      completedDate: r.completedAt ?? r.completed_at ?? null,
       level: toAlertLevel(r.level),
       actions:
         r.tasks && r.tasks.length > 0
@@ -71,6 +78,86 @@ export default function PatientDetailPage() {
     const planUuid = risks[0]?.uuid ?? "";
     return { uuid: planUuid, summary, goals, notes };
   };
+
+  // care-plans API レスポンスを取り込み
+  function mapCarePlanFromAny(data: any): CarePlan | null {
+    // 1) assess-risk 互換: 配列をそのままゴール配列として解釈
+    if (Array.isArray(data)) {
+      return buildCarePlanFromRisks(data as RiskItem[]);
+    }
+    // 2) ラッパーオブジェクト: { items: [...] } or { data: [...] }
+    if (Array.isArray(data?.items)) {
+      return buildCarePlanFromRisks(data.items as RiskItem[]);
+    }
+    if (Array.isArray(data?.data)) {
+      return buildCarePlanFromRisks(data.data as RiskItem[]);
+    }
+    // 3) CarePlan風のオブジェクト: { uuid, goals: [...], summary?, notes? }
+    if (data && Array.isArray(data.goals)) {
+      const risks: RiskItem[] = (data.goals as any[]).map((g) => ({
+        uuid: g.uuid ?? g.id ?? undefined,
+        level: g.level ?? "none",
+        title: g.title ?? g.category ?? g.goal ?? "無題",
+        goal: g.goal ?? g.title ?? g.category ?? "無題",
+        tasks: Array.isArray(g.tasks)
+          ? g.tasks
+          : Array.isArray(g.actions)
+          ? g.actions.map((a: any) => a.text ?? String(a))
+          : [],
+        description: g.description,
+        status: g.status,
+        completed: g.completed,
+        completedAt: g.completedAt ?? g.completed_at,
+      }));
+      const plan = buildCarePlanFromRisks(risks);
+      return {
+        uuid: data.uuid ?? plan.uuid,
+        summary: data.summary ?? plan.summary,
+        notes: data.notes ?? plan.notes,
+        goals: plan.goals,
+      };
+    }
+    return null;
+  }
+
+  async function loadCarePlanFromServer() {
+    try {
+      setCarePlanLoading(true);
+      const url = `${FUNCTIONS_URL}/care-plans?user_id=${encodeURIComponent(
+        String(userId)
+      )}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        // eslint-disable-next-line no-console
+        console.error("care-plans fetch failed", res.status);
+        return;
+      }
+      const data: any = await res.json();
+      // eslint-disable-next-line no-console
+      console.log("care-plans result", res.status, data);
+      const plan = mapCarePlanFromAny(data);
+      if (plan) {
+        setCarePlan(plan);
+      } else {
+        // 想定外形式は無視（必要ならここで別形式のマッピングを追加）
+        // eslint-disable-next-line no-console
+        console.warn("care-plans: unsupported response shape");
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("care-plans load error", e);
+    } finally {
+      setCarePlanLoading(false);
+    }
+  }
+
+  // タブ遷移で「介護計画」を開いた時に取得
+  useEffect(() => {
+    if (activeTab === "plan") {
+      void loadCarePlanFromServer();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const toggleLog = (id: number) =>
     setExpandedLogs((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -311,6 +398,27 @@ export default function PatientDetailPage() {
                       onDeleteGoal={handleDeleteGoal}
                       onAddGoal={handleAddGoal}
                     />
+                  </div>
+                ) : carePlanLoading ? (
+                  <div
+                    className="bg-white rounded-xl p-6 text-center"
+                    style={{ border: `1px solid ${colors.border}` }}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
+                      style={{ backgroundColor: colors.bgSecondary }}
+                    >
+                      <Sparkles size={24} color={colors.textMuted} />
+                    </div>
+                    <h3
+                      className="text-sm font-semibold mb-2"
+                      style={{ color: colors.textPrimary }}
+                    >
+                      介護計画を読み込み中…
+                    </h3>
+                    <p className="text-xs" style={{ color: colors.textMuted }}>
+                      少々お待ちください
+                    </p>
                   </div>
                 ) : (
                   <div
