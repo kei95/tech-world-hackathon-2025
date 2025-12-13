@@ -185,7 +185,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
               className="text-xs font-medium block mb-1"
               style={{ color: colors.textMuted }}
             >
-              カテゴリ
+              タイトル
             </label>
             <input
               type="text"

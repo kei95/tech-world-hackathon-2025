@@ -149,6 +149,7 @@ export const CarePlanSection: React.FC<CarePlanSectionProps> = ({
         <AddGoalForm
           onAdd={handleAddGoal}
           onCancel={() => setShowAddForm(false)}
+          userId={userId}
         />
       ) : (
         <button
