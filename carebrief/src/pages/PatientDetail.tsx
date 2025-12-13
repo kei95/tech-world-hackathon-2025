@@ -10,7 +10,6 @@ import {
   Sparkles,
   User,
   Activity,
-  Download,
 } from "lucide-react";
 import { colors } from "../lib/colors";
 import { LogCard } from "../components/patientDetail/LogCard";
@@ -46,7 +45,7 @@ export default function PatientDetailPage() {
     (newLog: CareLog) => {
       setCareLogs((prev) => [newLog, ...prev]);
     },
-    [setCareLogs]
+    [setCareLogs],
   );
 
   // SSE接続
@@ -92,8 +91,8 @@ export default function PatientDetailPage() {
         r.tasks && r.tasks.length > 0
           ? r.tasks.map((t) => ({ text: t }))
           : r.description
-          ? [{ text: r.description }]
-          : [],
+            ? [{ text: r.description }]
+            : [],
     }));
     const summary =
       risks.length > 0 ? risks.map((r) => r.title).join(" / ") : "特記なし";
@@ -127,8 +126,8 @@ export default function PatientDetailPage() {
         tasks: Array.isArray(g.tasks)
           ? g.tasks
           : Array.isArray(g.actions)
-          ? g.actions.map((a: any) => a.text ?? String(a))
-          : [],
+            ? g.actions.map((a: any) => a.text ?? String(a))
+            : [],
         description: g.description,
         status: g.status,
         completed: g.completed,
@@ -154,26 +153,23 @@ export default function PatientDetailPage() {
     try {
       setCarePlanLoading(true);
       const url = `${FUNCTIONS_URL}/care-plans?user_id=${encodeURIComponent(
-        String(userId)
+        String(userId),
       )}`;
       const res = await fetch(url);
       if (!res.ok) {
-        // eslint-disable-next-line no-console
         console.error("care-plans fetch failed", res.status);
         return;
       }
       const data: any = await res.json();
-      // eslint-disable-next-line no-console
+
       console.log("care-plans result", res.status, data);
       const plan = mapCarePlanFromAny(data);
       if (plan) {
         setCarePlan(plan);
       } else {
-        // eslint-disable-next-line no-console
         console.warn("care-plans: unsupported response shape");
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error("care-plans load error", e);
     } finally {
       setCarePlanLoading(false);
@@ -217,7 +213,7 @@ export default function PatientDetailPage() {
       } catch {
         // ignore
       }
-      // eslint-disable-next-line no-console
+
       console.log("assess-risk result", res.status, data);
       if (Array.isArray(data)) {
         const plan = buildCarePlanFromRisks(data as RiskItem[]);
@@ -227,7 +223,6 @@ export default function PatientDetailPage() {
         // 想定外のレスポンス形式時はプラン未設定のままにする
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
       console.error("assess-risk call failed", e);
     } finally {
       setIsGenerating(false);
@@ -251,10 +246,10 @@ export default function PatientDetailPage() {
                     completed: !goal.completed,
                     completedDate: !goal.completed ? "2024年12月13日" : null,
                   }
-                : goal
+                : goal,
             ),
           }
-        : null
+        : null,
     );
   };
   const handleEditGoal = (goalId: number, data: GoalFormData) => {
@@ -263,17 +258,17 @@ export default function PatientDetailPage() {
         ? {
             ...prev,
             goals: prev.goals.map((goal) =>
-              goal.id === goalId ? { ...goal, ...data } : goal
+              goal.id === goalId ? { ...goal, ...data } : goal,
             ),
           }
-        : null
+        : null,
     );
   };
   const handleDeleteGoal = (goalId: number) => {
     setCarePlan((prev) =>
       prev
         ? { ...prev, goals: prev.goals.filter((goal) => goal.id !== goalId) }
-        : null
+        : null,
     );
   };
   const handleAddGoal = (data: GoalFormData) => {
@@ -295,7 +290,7 @@ export default function PatientDetailPage() {
               },
             ],
           }
-        : null
+        : null,
     );
   };
 
@@ -505,11 +500,12 @@ export default function PatientDetailPage() {
                     </p>
                     <button
                       onClick={handleClickGenerate}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium text-white"
+                      disabled={isGenerating}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium disabled:opacity-60 text-white"
                       style={{ backgroundColor: colors.primary }}
                     >
                       <Sparkles size={14} />
-                      生成を開始
+                      {isGenerating ? "生成中..." : "介護計画を生成"}
                     </button>
                   </div>
                 )}
