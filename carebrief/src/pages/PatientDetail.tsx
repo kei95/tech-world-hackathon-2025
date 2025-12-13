@@ -30,12 +30,16 @@ export default function PatientDetailPage() {
   const FUNCTIONS_URL =
     (import.meta as any).env?.VITE_FUNCTIONS_URL ??
     "http://localhost:54321/functions/v1";
+  const userId: number | string = Number(patientDetail.id) || patientDetail.id;
 
   // assess-risk レスポンス → CarePlan 変換の最小実装
   type RiskItem = {
-    id: number | string;
+    uuid?: string;
+    id?: number | string;
     level: string; // e.g. "alert" | "warning" | "none"
     title: string;
+    goal?: string;
+    tasks?: string[];
     description?: string;
   };
   const toAlertLevel = (level: string): CarePlan["goals"][number]["level"] => {
@@ -46,19 +50,26 @@ export default function PatientDetailPage() {
   };
   const buildCarePlanFromRisks = (risks: RiskItem[]): CarePlan => {
     const goals: CarePlan["goals"] = risks.map((r, idx) => ({
-      id: typeof r.id === "number" ? r.id : idx + 1,
+      id: idx + 1,
+      uuid: r.uuid ?? "",
       category: r.title,
-      goal: r.title,
+      goal: r.goal ?? r.title,
       completed: false,
       completedDate: null,
       level: toAlertLevel(r.level),
-      actions: r.description ? [{ text: r.description }] : [],
+      actions:
+        r.tasks && r.tasks.length > 0
+          ? r.tasks.map((t) => ({ text: t }))
+          : r.description
+          ? [{ text: r.description }]
+          : [],
     }));
     const summary =
       risks.length > 0 ? risks.map((r) => r.title).join(" / ") : "特記なし";
     const notes =
       "AI抽出の危険兆候に基づく自動生成プラン（初期版）。臨床判断で適宜修正してください。";
-    return { summary, goals, notes };
+    const planUuid = risks[0]?.uuid ?? "";
+    return { uuid: planUuid, summary, goals, notes };
   };
 
   const toggleLog = (id: number) =>
@@ -67,7 +78,7 @@ export default function PatientDetailPage() {
     setIsGenerating(true);
     try {
       const form = new FormData();
-      form.append("user_id", "1");
+      form.append("user_id", String(userId));
       const res = await fetch(`${FUNCTIONS_URL}/assess-risk`, {
         method: "POST",
         body: form,
@@ -140,6 +151,7 @@ export default function PatientDetailPage() {
               ...prev.goals,
               {
                 id: Date.now(),
+                uuid: "",
                 category: data.category,
                 goal: data.goal,
                 level: data.level,
@@ -293,6 +305,7 @@ export default function PatientDetailPage() {
                     </div>
                     <CarePlanSection
                       plan={carePlan}
+                      userId={userId}
                       onToggleGoal={handleToggleGoal}
                       onEditGoal={handleEditGoal}
                       onDeleteGoal={handleDeleteGoal}

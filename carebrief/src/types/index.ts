@@ -1,6 +1,6 @@
-export type FlagLevel = 'red' | 'yellow' | 'none';
-export type Trend = 'up' | 'down' | 'stable';
-export type AlertLevel = 'red' | 'yellow' | 'none';
+export type FlagLevel = "red" | "yellow" | "none";
+export type Trend = "up" | "down" | "stable";
+export type AlertLevel = "red" | "yellow" | "none";
 
 export interface Patient {
   id: string;
@@ -25,13 +25,17 @@ export interface Activity {
   patient: string;
   action: string;
   time: string;
-  type: 'log' | 'alert' | 'routine' | 'comment';
+  type: "log" | "alert" | "routine" | "comment";
 }
 
 export interface RoutineItem {
   time: string;
   activity: string;
-  Icon: React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  Icon: React.ComponentType<{
+    size?: number;
+    color?: string;
+    strokeWidth?: number;
+  }>;
 }
 
 export interface CareLog {
@@ -47,7 +51,8 @@ export interface Action {
 }
 
 export interface Goal {
-  id: number;
+  id: number; // UI用のローカルID
+  uuid: string; // サーバから返る各ゴールのUUID
   category: string;
   goal: string;
   completed: boolean;
@@ -57,6 +62,7 @@ export interface Goal {
 }
 
 export interface CarePlan {
+  uuid: string;
   summary: string;
   goals: Goal[];
   notes: string;
