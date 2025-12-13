@@ -1,22 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  RefreshControl,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
-import { patients, Patient } from '@/constants/Data';
 import { usePatient } from '@/constants/PatientContext';
 import { PatientCard } from '@/components/PatientCard';
+import { PatientCardSkeleton } from '@/components/Skeleton';
+import { useUsers } from '@/hooks/useUsers';
+import type { Patient } from '@/lib/types';
 
 export default function PatientSelectScreen() {
   const { selectedPatient, setSelectedPatient } = usePatient();
   const [localSelected, setLocalSelected] = useState<Patient | null>(selectedPatient);
+  const { users, loading, refresh, isRefreshing, error } = useUsers();
 
   const handlePatientSelect = (patient: Patient) => {
     setLocalSelected(patient);
@@ -28,6 +32,25 @@ export default function PatientSelectScreen() {
       router.push('/(tabs)/log');
     }
   };
+
+  const renderPatientItem = useCallback(
+    ({ item }: { item: Patient }) => (
+      <PatientCard
+        patient={item}
+        selected={localSelected?.id === item.id}
+        onPress={() => handlePatientSelect(item)}
+      />
+    ),
+    [localSelected]
+  );
+
+  const renderSkeletons = () => (
+    <View style={styles.patientListContent}>
+      {[1, 2, 3, 4].map((i) => (
+        <PatientCardSkeleton key={i} />
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]}>
@@ -49,20 +72,49 @@ export default function PatientSelectScreen() {
           記録を作成する患者様を選んでください
         </Text>
 
-        <ScrollView
-          style={styles.patientList}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.patientListContent}
-        >
-          {patients.map((patient) => (
-            <PatientCard
-              key={patient.id}
-              patient={patient}
-              selected={localSelected?.id === patient.id}
-              onPress={() => handlePatientSelect(patient)}
-            />
-          ))}
-        </ScrollView>
+        {loading && !isRefreshing ? (
+          renderSkeletons()
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Feather name="alert-circle" size={48} color={Colors.alertRed} />
+            <Text style={[styles.errorText, { color: Colors.textSecondary }]}>
+              データの読み込みに失敗しました
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryButton, { backgroundColor: Colors.primary }]}
+              onPress={refresh}
+            >
+              <Text style={[styles.retryButtonText, { color: Colors.textInverse }]}>
+                再読み込み
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={users}
+            renderItem={renderPatientItem}
+            keyExtractor={(item) => item.id}
+            style={styles.patientList}
+            contentContainerStyle={styles.patientListContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refresh}
+                colors={[Colors.primary]}
+                tintColor={Colors.primary}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Feather name="users" size={48} color={Colors.textMuted} />
+                <Text style={[styles.emptyText, { color: Colors.textMuted }]}>
+                  患者データがありません
+                </Text>
+              </View>
+            }
+          />
+        )}
       </View>
 
       <View style={[styles.footer, { backgroundColor: Colors.backgroundElevated, borderTopColor: Colors.border }]}>
@@ -152,5 +204,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginRight: Spacing.sm,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  errorText: {
+    fontSize: 15,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  retryButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  emptyText: {
+    fontSize: 15,
+    marginTop: Spacing.md,
   },
 });

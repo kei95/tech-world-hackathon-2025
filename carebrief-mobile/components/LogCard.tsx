@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
-import { Log } from '@/constants/Data';
+import type { CareLog } from '@/lib/types';
 
 interface LogCardProps {
-  log: Log;
+  log: CareLog;
 }
 
 export function LogCard({ log }: LogCardProps) {

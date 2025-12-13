@@ -1,9 +1,19 @@
 import { Stack, Redirect, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Colors } from '@/constants/Colors';
 import { PatientProvider } from '@/constants/PatientContext';
 import { AuthProvider, useAuth } from '@/constants/AuthContext';
 import 'react-native-reanimated';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60, // 1 minute
+      retry: 2,
+    },
+  },
+});
 
 function RootLayoutNav() {
   const { isAuthenticated } = useAuth();
@@ -59,10 +69,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <PatientProvider>
-        <RootLayoutNav />
-      </PatientProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <PatientProvider>
+          <RootLayoutNav />
+        </PatientProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
-import { Patient } from '@/constants/Data';
+import type { Patient } from '@/lib/types';
 
 interface PatientCardProps {
   patient: Patient;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Patient } from './Data';
+import type { Patient } from '@/lib/types';
 
 interface PatientContextType {
   selectedPatient: Patient | null;

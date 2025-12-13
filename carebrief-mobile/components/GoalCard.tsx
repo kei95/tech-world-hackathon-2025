@@ -2,12 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Colors, Spacing, BorderRadius, Shadows } from "@/constants/Colors";
-import { Goal } from "@/constants/Data";
+import type { Goal } from "@/lib/types";
 
 interface GoalCardProps {
   goal: Goal;
   onToggleComplete: () => void;
-  onToggleExpand: () => void;
+  expanded?: boolean;
 }
 
 const getLevelConfig = (level: string) => {
@@ -36,7 +36,7 @@ const getLevelConfig = (level: string) => {
 export function GoalCard({
   goal,
   onToggleComplete,
-  onToggleExpand,
+  expanded = true,
 }: GoalCardProps) {
   const levelConfig = getLevelConfig(goal.level);
 
@@ -49,11 +49,7 @@ export function GoalCard({
         Shadows.sm,
       ]}
     >
-      <TouchableOpacity
-        style={styles.header}
-        onPress={onToggleExpand}
-        activeOpacity={0.7}
-      >
+      <View style={styles.header}>
         <TouchableOpacity
           style={[
             styles.checkbox,
@@ -102,9 +98,9 @@ export function GoalCard({
             </Text>
           )}
         </View>
-      </TouchableOpacity>
+      </View>
 
-      <View
+      {expanded && <View
         style={[
           styles.actionsContainer,
           {
@@ -126,7 +122,7 @@ export function GoalCard({
             </Text>
           </View>
         ))}
-      </View>
+      </View>}
     </View>
   );
 }

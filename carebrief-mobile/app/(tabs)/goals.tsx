@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,46 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
 import { usePatient } from '@/constants/PatientContext';
-import { goalsData, Goal } from '@/constants/Data';
 import { GoalCard } from '@/components/GoalCard';
+import { SummaryCardSkeleton, GoalCardSkeleton } from '@/components/Skeleton';
+import { useGoals } from '@/hooks/useGoals';
+import type { Goal } from '@/lib/types';
 
 type Filter = 'active' | 'completed' | 'all';
 
 export default function GoalsScreen() {
   const { selectedPatient } = usePatient();
-
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [summary, setSummary] = useState('');
-  const [notes, setNotes] = useState('');
   const [filter, setFilter] = useState<Filter>('active');
+  const [localGoals, setLocalGoals] = useState<Goal[]>([]);
+  const [hasLocalChanges, setHasLocalChanges] = useState(false);
 
-  useEffect(() => {
-    if (selectedPatient?.id && goalsData[selectedPatient.id]) {
-      setGoals(goalsData[selectedPatient.id].goals);
-      setSummary(goalsData[selectedPatient.id].summary);
-      setNotes(goalsData[selectedPatient.id].notes);
+  const {
+    goals: apiGoals,
+    summary,
+    notes,
+    loading,
+    error,
+    refresh,
+    isRefreshing,
+  } = useGoals({
+    userId: selectedPatient?.id || '',
+    enabled: !!selectedPatient?.id,
+  });
+
+  // Use local goals if there are local changes, otherwise use API goals
+  const goals = hasLocalChanges ? localGoals : apiGoals;
+
+  // Sync local goals when API goals change
+  React.useEffect(() => {
+    if (apiGoals.length > 0 && !hasLocalChanges) {
+      setLocalGoals(apiGoals);
     }
-  }, [selectedPatient]);
+  }, [apiGoals, hasLocalChanges]);
 
   const handleToggleComplete = (goalId: number) => {
     const goal = goals.find(g => g.id === goalId);
@@ -44,7 +60,8 @@ export default function GoalsScreen() {
           {
             text: '達成',
             onPress: () => {
-              setGoals((prev) =>
+              setHasLocalChanges(true);
+              setLocalGoals((prev) =>
                 prev.map((g) =>
                   g.id === goalId
                     ? {
@@ -64,7 +81,8 @@ export default function GoalsScreen() {
         ]
       );
     } else {
-      setGoals((prev) =>
+      setHasLocalChanges(true);
+      setLocalGoals((prev) =>
         prev.map((g) =>
           g.id === goalId
             ? { ...g, completed: false, completedDate: null }
@@ -73,6 +91,11 @@ export default function GoalsScreen() {
       );
     }
   };
+
+  const handleRefresh = useCallback(async () => {
+    setHasLocalChanges(false);
+    await refresh();
+  }, [refresh]);
 
   const filteredGoals = goals.filter((goal) => {
     if (filter === 'active') return !goal.completed;
@@ -86,23 +109,84 @@ export default function GoalsScreen() {
   const redGoals = goals.filter((g) => g.level === 'red' && !g.completed);
   const yellowGoals = goals.filter((g) => g.level === 'yellow' && !g.completed);
 
+  const renderSkeletons = () => (
+    <View style={styles.contentContainer}>
+      <View style={{ margin: Spacing.lg, marginBottom: Spacing.md }}>
+        <SummaryCardSkeleton />
+      </View>
+      <View style={styles.goalsList}>
+        {[1, 2, 3].map((i) => (
+          <GoalCardSkeleton key={i} />
+        ))}
+      </View>
+    </View>
+  );
+
+  if (!selectedPatient) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: Colors.background }]}>
+        <Feather name="user" size={48} color={Colors.textMuted} />
+        <Text style={[styles.emptyStateText, { color: Colors.textMuted }]}>
+          患者を選択してください
+        </Text>
+      </View>
+    );
+  }
+
+  if (loading && !isRefreshing) {
+    return (
+      <View style={[styles.container, { backgroundColor: Colors.background }]}>
+        {renderSkeletons()}
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: Colors.background }]}>
+        <Feather name="alert-circle" size={48} color={Colors.alertRed} />
+        <Text style={[styles.errorText, { color: Colors.textSecondary }]}>
+          データの読み込みに失敗しました
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: Colors.primary }]}
+          onPress={handleRefresh}
+        >
+          <Text style={[styles.retryButtonText, { color: Colors.textInverse }]}>
+            再読み込み
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: Colors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={[Colors.primary]}
+          tintColor={Colors.primary}
+        />
+      }
     >
       {/* Summary Card */}
-      <View style={[
-        styles.summaryCard,
-        { backgroundColor: Colors.primaryLight, borderLeftColor: Colors.primary },
-      ]}>
-        <View style={styles.summaryHeader}>
-          <Feather name="target" size={18} color={Colors.primary} />
-          <Text style={[styles.summaryTitle, { color: Colors.primary }]}>ケアの方針</Text>
+      {summary ? (
+        <View style={[
+          styles.summaryCard,
+          { backgroundColor: Colors.primaryLight, borderLeftColor: Colors.primary },
+        ]}>
+          <View style={styles.summaryHeader}>
+            <Feather name="target" size={18} color={Colors.primary} />
+            <Text style={[styles.summaryTitle, { color: Colors.primary }]}>ケアの方針</Text>
+          </View>
+          <Text style={[styles.summaryText, { color: Colors.textSecondary }]}>{summary}</Text>
         </View>
-        <Text style={[styles.summaryText, { color: Colors.textSecondary }]}>{summary}</Text>
-      </View>
+      ) : null}
 
       {/* Stats Row */}
       <View style={styles.statsRow}>
@@ -228,6 +312,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   contentContainer: {
     paddingBottom: Spacing.lg,
   },
@@ -298,6 +386,20 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 14,
     marginTop: Spacing.md,
+  },
+  errorText: {
+    fontSize: 15,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  retryButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   notesFooter: {
     flexDirection: 'row',
