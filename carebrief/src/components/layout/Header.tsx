@@ -1,6 +1,10 @@
 import { colors } from "../../lib/colors";
 
 export const Header = () => {
+  const today = new Date();
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const formatted =
+    `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日(${weekdays[today.getDay()]})`;
   return (
     <header
       className="px-8 py-3 bg-white border-b flex items-center justify-between"
@@ -15,9 +19,7 @@ export const Header = () => {
         </h1>
         <div className="flex items-center gap-1">- ダッシュボード</div>
       </div>
-      <p className="text-sm" style={{ color: colors.textMuted }}>
-        2024年12月13日(金)
-      </p>
+      <p className="text-sm" style={{ color: colors.textMuted }}>{formatted}</p>
     </header>
   );
 };
