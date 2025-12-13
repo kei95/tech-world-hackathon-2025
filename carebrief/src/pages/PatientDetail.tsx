@@ -376,19 +376,9 @@ export default function PatientDetailPage() {
                           className="text-xs font-medium"
                           style={{ color: colors.textPrimary }}
                         >
-                          AIが生成した介護計画の叩き台
+                          AIが生成した介護計画
                         </span>
                       </div>
-                      <button
-                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-gray-50"
-                        style={{
-                          border: `1px solid ${colors.border}`,
-                          color: colors.textSecondary,
-                        }}
-                      >
-                        <Download size={12} />
-                        出力
-                      </button>
                     </div>
                     <CarePlanSection
                       plan={carePlan}
