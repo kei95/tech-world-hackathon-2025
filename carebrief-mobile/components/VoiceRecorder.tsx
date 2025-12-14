@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
+import { Colors, Spacing,  Shadows } from '@/constants/Colors';
 
 interface VoiceRecorderProps {
   onRecordingComplete?: (uri: string, duration: number) => void;
 }
 
 export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -37,10 +37,23 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
     }
   }, [isRecording]);
 
+  // Clean up timer on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  // Clean up recording on unmount
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  recordingRef.current = recording;
+
+  useEffect(() => {
+    return () => {
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync();
       }
     };
   }, []);
@@ -53,19 +66,24 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
 
   const startRecording = async () => {
     try {
-      const status = await AudioModule.requestRecordingPermissionsAsync();
-      if (!status.granted) {
-        console.log('Permission not granted');
+      console.log('Requesting permissions...');
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        Alert.alert('エラー', 'マイクへのアクセス許可が必要です。');
         return;
       }
 
-      await AudioModule.setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
       });
 
       console.log('Starting recording...');
-      recorder.record();
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(newRecording);
       setIsRecording(true);
       setRecordingDuration(0);
 
@@ -75,42 +93,92 @@ export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
 
       console.log('Recording started');
     } catch (err) {
-      console.error('Failed to start recording', err);
+      console.error('Failed to start recording:', err);
+      Alert.alert('エラー', '録音の開始に失敗しました。');
     }
   };
 
   const stopRecording = async () => {
     console.log('Stopping recording...');
+
+    if (!recording) {
+      console.error('No recording to stop');
+      return;
+    }
+
+    // Capture duration before state changes
+    const finalDuration = recordingDuration;
+
     setIsRecording(false);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
 
-    await recorder.stop();
-    await AudioModule.setAudioModeAsync({
-      allowsRecording: false,
-    });
+    // Check minimum recording duration
+    if (finalDuration < 1) {
+      await recording.stopAndUnloadAsync();
+      setRecording(null);
+      Alert.alert(
+        'エラー',
+        '録音が短すぎます。もう少し長く録音してください。'
+      );
+      return;
+    }
 
-    const tempUri = recorder.uri;
-    console.log('Recording stopped and stored at', tempUri);
+    try {
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+      });
 
-    if (onRecordingComplete && tempUri) {
-      try {
-        // Copy to a persistent location to avoid file being cleaned up
+      const tempUri = recording.getURI();
+      console.log('Recording stopped, URI:', tempUri);
+      console.log('Recording duration:', finalDuration, 'seconds');
+
+      setRecording(null);
+
+      if (!tempUri) {
+        console.error('No URI returned from recording');
+        Alert.alert(
+          'エラー',
+          '録音に失敗しました。もう一度お試しください。'
+        );
+        return;
+      }
+
+      // Verify file exists
+      const fileInfo = await FileSystem.getInfoAsync(tempUri);
+      console.log('File info:', fileInfo);
+
+      if (!fileInfo.exists) {
+        Alert.alert(
+          'エラー',
+          '録音ファイルが見つかりません。もう一度お試しください。'
+        );
+        return;
+      }
+
+      if (onRecordingComplete) {
+        // Copy to a persistent location
         const filename = `recording-${Date.now()}.m4a`;
         const persistentUri = `${FileSystem.documentDirectory}${filename}`;
+
         await FileSystem.copyAsync({
           from: tempUri,
           to: persistentUri,
         });
+
         console.log('Recording copied to', persistentUri);
-        onRecordingComplete(persistentUri, recordingDuration);
-      } catch (err) {
-        console.error('Failed to copy recording:', err);
-        // Fallback to original URI
-        onRecordingComplete(tempUri, recordingDuration);
+        onRecordingComplete(persistentUri, finalDuration);
       }
+    } catch (err) {
+      console.error('Failed to process recording:', err);
+      setRecording(null);
+      Alert.alert(
+        'エラー',
+        '録音ファイルの保存に失敗しました。もう一度お試しください。'
+      );
     }
   };
 

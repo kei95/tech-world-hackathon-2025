@@ -40,6 +40,8 @@ export function GoalCard({
 }: GoalCardProps) {
   const levelConfig = getLevelConfig(goal.level);
 
+  console.log('got goal ===========>', goal)
+
   return (
     <View
       style={[
@@ -118,7 +120,7 @@ export function GoalCard({
               style={[styles.actionBullet, { backgroundColor: Colors.primary }]}
             />
             <Text style={[styles.actionText, { color: Colors.textSecondary }]}>
-              {action.text}
+              {action}
             </Text>
           </View>
         ))}

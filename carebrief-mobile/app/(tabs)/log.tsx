@@ -40,9 +40,11 @@ export default function LogScreen() {
     setError(null);
 
     try {
+      console.log('calling API...', uri)
       // Call logsPreview API with audio file
       const result = await logsPreview(uri);
-      setSummary(result.text);
+      console.log('===============+>', result)
+      setSummary(result.summary);
       setMode('edit');
     } catch (err) {
       console.error('Failed to process audio:', err);
@@ -74,8 +76,9 @@ export default function LogScreen() {
         content: summary.trim(),
       });
 
-      // Invalidate logs query to refresh the history
+      // Invalidate queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['logs', selectedPatient.id] });
+      queryClient.invalidateQueries({ queryKey: ['carePlan', selectedPatient.id] });
 
       Alert.alert(
         '保存完了',

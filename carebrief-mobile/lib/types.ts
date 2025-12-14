@@ -24,10 +24,6 @@ export interface CareLog {
   content: string;
 }
 
-export interface Action {
-  text: string;
-}
-
 export interface Goal {
   id: number;
   uuid: string;
@@ -36,7 +32,7 @@ export interface Goal {
   completed: boolean;
   completedDate: string | null;
   level: AlertLevel;
-  actions: Action[];
+  actions: string[];
 }
 
 export interface CarePlan {

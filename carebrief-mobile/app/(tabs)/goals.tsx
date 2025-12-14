@@ -37,6 +37,8 @@ export default function GoalsScreen() {
     enabled: !!selectedPatient?.id,
   });
 
+  console.log(apiGoals)
+
   // Use local goals if there are local changes, otherwise use API goals
   const goals = hasLocalChanges ? localGoals : apiGoals;
 

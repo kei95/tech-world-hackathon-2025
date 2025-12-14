@@ -18,6 +18,8 @@ export function useGoals({ userId, enabled = true }: UseGoalsOptions) {
     queryKey: ['carePlan', userId],
     queryFn: () => fetchCarePlan(userId),
     enabled: !!userId && enabled,
+    staleTime: 0, // Always refetch on mount
+    refetchOnMount: 'always',
   });
 
   const refresh = async () => {

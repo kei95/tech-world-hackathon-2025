@@ -171,7 +171,13 @@ export async function fetchLogs(
 }
 
 // Audio log preview
-export async function logsPreview(audioUri: string): Promise<{ text: string }> {
+export async function logsPreview(audioUri: string): Promise<{ summary: string }> {
+  // Verify file exists before uploading
+  const fileInfo = await FileSystem.getInfoAsync(audioUri);
+  if (!fileInfo.exists) {
+    throw new Error(`Audio file does not exist: ${audioUri}`);
+  }
+
   // Use FileSystem.uploadAsync for proper file upload in React Native
   const uploadResult = await FileSystem.uploadAsync(
     `${API_URL}/functions/v1/logs-preview`,
@@ -184,6 +190,9 @@ export async function logsPreview(audioUri: string): Promise<{ text: string }> {
       parameters: {},
     }
   );
+
+    console.log('logsPreview ----- result', uploadResult)
+
 
   if (uploadResult.status !== 200) {
     throw new Error("Failed to preview log");
@@ -229,26 +238,39 @@ export function getLogsStreamUrl(userId: string): string {
 }
 
 // Care plan API
+interface ApiCarePlanItem {
+  id: number;
+  plan_uuid: string;
+  user_id: number;
+  title: string;
+  goal: string;
+  level: "warning" | "critical" | "normal";
+  status: "pending" | "completed";
+  tasks: Array<{ text: string }>;
+  created_at: string;
+}
+
 interface ApiCarePlanResponse {
-  uuid: string;
-  summary: string;
-  goals: Array<{
-    uuid: string;
-    category: string;
-    goal: string;
-    completed: boolean;
-    completedDate: string | null;
-    level: AlertLevel;
-    actions: Array<{ text: string }>;
-  }>;
-  notes: string;
+  items: ApiCarePlanItem[];
+}
+
+function mapApiLevelToAlertLevel(level: string): AlertLevel {
+  switch (level) {
+    case "critical":
+      return "red";
+    case "warning":
+      return "yellow";
+    default:
+      return "none";
+  }
 }
 
 export async function fetchCarePlan(userId: string): Promise<CarePlan | null> {
   try {
     const response = await fetch(
-      `${API_URL}/functions/v1/care-plan?userId=${userId}`,
+      `${API_URL}/functions/v1/care-plans?user_id=${userId}`,
     );
+
     if (!response.ok) {
       if (response.status === 404) {
         return null;
@@ -256,22 +278,33 @@ export async function fetchCarePlan(userId: string): Promise<CarePlan | null> {
       throw new Error("Failed to fetch care plan");
     }
     const data: ApiCarePlanResponse = await response.json();
+
+    if (!data.items || data.items.length === 0) {
+      return null;
+    }
+
+    // Use the first item's plan_uuid as the CarePlan uuid
+    const planUuid = data.items[0].plan_uuid;
+
+    console.log('fetchCarePlan ----- data', data)
+
     return {
-      uuid: data.uuid,
-      summary: data.summary,
-      goals: data.goals.map((goal, index) => ({
-        id: index + 1,
-        uuid: goal.uuid,
-        category: goal.category,
-        goal: goal.goal,
-        completed: goal.completed,
-        completedDate: goal.completedDate,
-        level: goal.level,
-        actions: goal.actions,
+      uuid: planUuid,
+      summary: "", // API doesn't provide summary, leave empty
+      goals: data.items.map((item) => ({
+        id: item.id,
+        uuid: item.plan_uuid,
+        category: item.title,
+        goal: item.goal,
+        completed: item.status === "completed",
+        completedDate: item.status === "completed" ? item.created_at : null,
+        level: mapApiLevelToAlertLevel(item.level),
+        actions: item.tasks || [],
       })),
-      notes: data.notes,
+      notes: "", // API doesn't provide notes, leave empty
     };
-  } catch {
+  } catch (err) {
+    console.error("Failed to fetch care plan:", err);
     return null;
   }
 }
