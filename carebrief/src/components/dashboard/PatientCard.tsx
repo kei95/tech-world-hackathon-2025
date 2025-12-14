@@ -17,7 +17,7 @@ export const PatientCard = ({ patient, onClick }: PatientCardProps) => (
       <div className="flex items-center gap-2.5">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: colors.primary }}
+          style={{ backgroundColor: colors.bgPrimary }}
         >
           <Heart size={18} color={colors.primary} strokeWidth={1.5} />
         </div>
