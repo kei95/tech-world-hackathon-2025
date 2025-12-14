@@ -12,10 +12,7 @@ export const Header = () => {
       style={{ borderColor: colors.border }}
     >
       <div className="flex items-center gap-3">
-        <h1
-          className="text-2xl font-bold mb-1"
-          style={{ color: colors.textPrimary }}
-        >
+        <h1 className="text-2xl font-bold mb-1" style={{ color: "#C1437B" }}>
           CareBrief
         </h1>
         <div className="flex items-center gap-1">- ダッシュボード</div>

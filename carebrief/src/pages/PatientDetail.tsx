@@ -40,6 +40,7 @@ export default function PatientDetailPage() {
   const [carePlanLoading, setCarePlanLoading] = useState<boolean>(false);
   const [showConfirmGenerate, setShowConfirmGenerate] =
     useState<boolean>(false);
+  const [showGenerateError, setShowGenerateError] = useState<boolean>(false);
 
   // SSEで新しいログを受信したら先頭に追加
   const handleNewLog = useCallback(
@@ -204,33 +205,62 @@ export default function PatientDetailPage() {
     try {
       const form = new FormData();
       form.append("user_id", String(userId || patient?.id || "1"));
-      const res = await fetch(`${FUNCTIONS_URL}/assess-risk`, {
-        method: "POST",
-        body: form,
-      });
-      let data: unknown = null as unknown;
-      try {
-        data = await res.json();
-      } catch {
-        // ignore
-      }
-
-      console.log("assess-risk result", res.status, data);
-      if (Array.isArray(data)) {
-        const plan = buildCarePlanFromRisks(data as RiskItem[]);
-        setCarePlan(plan);
-        setActiveTab("plan");
-        // 生成直後にサーバーの正式データを再取得
-        await loadCarePlanFromServer();
-      } else {
-        // 想定外のレスポンス形式時はプラン未設定のままにする
-        // 可能であればサーバー側に保存された最新を取得してみる
-        if (res.ok) {
-          await loadCarePlanFromServer();
+      // 最大3回リトライ（Internal Error系: 5xx のみ）
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        let res: Response | null = null;
+        try {
+          res = await fetch(`${FUNCTIONS_URL}/assess-risk`, {
+            method: "POST",
+            body: form,
+          });
+        } catch (e) {
+          // ネットワーク例外時はリトライせずにモーダル
+          console.error("assess-risk network error", e);
+          setShowGenerateError(true);
+          return;
         }
+
+        // 5xxはリトライ、3回目で諦める
+        if (res.status >= 500) {
+          console.warn(
+            `assess-risk internal error: ${res.status} (attempt ${attempt})`
+          );
+          if (attempt < 3) {
+            await new Promise((r) => setTimeout(r, 600));
+            continue;
+          } else {
+            setShowGenerateError(true);
+            return;
+          }
+        }
+
+        // 5xx 以外は通常処理
+        let data: unknown = null as unknown;
+        try {
+          data = await res.json();
+        } catch {
+          // ignore JSON parse error
+        }
+
+        console.log("assess-risk result", res.status, data);
+        if (Array.isArray(data)) {
+          const plan = buildCarePlanFromRisks(data as RiskItem[]);
+          setCarePlan(plan);
+          setActiveTab("plan");
+          // 生成直後にサーバーの正式データを再取得
+          await loadCarePlanFromServer();
+        } else {
+          // 想定外のレスポンス形式時はプラン未設定のままにする
+          // 可能であればサーバー側に保存された最新を取得してみる
+          if (res.ok) {
+            await loadCarePlanFromServer();
+          }
+        }
+        return; // 成功または5xx以外で1回で完了
       }
     } catch (e) {
       console.error("assess-risk call failed", e);
+      setShowGenerateError(true);
     } finally {
       setIsGenerating(false);
     }
@@ -437,7 +467,7 @@ export default function PatientDetailPage() {
             <div className="flex items-center gap-2.5">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: colors.primaryLight }}
+                style={{ backgroundColor: "#FFE8F2" }}
               >
                 <Heart size={20} color={colors.primary} />
               </div>
@@ -497,7 +527,7 @@ export default function PatientDetailPage() {
                 >
                   <tab.Icon size={14} />
                   {tab.label}
-                  {tab.badge && (
+                  {/* {tab.badge && (
                     <span
                       className="px-1.5 py-0.5 rounded text-xs font-bold"
                       style={{
@@ -507,7 +537,7 @@ export default function PatientDetailPage() {
                     >
                       {tab.badge}
                     </span>
-                  )}
+                  )} */}
                 </button>
               ))}
             </div>
@@ -681,6 +711,41 @@ export default function PatientDetailPage() {
                 style={{ backgroundColor: colors.primary }}
               >
                 続行して生成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showGenerateError && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-sm mx-4 rounded-xl p-4 bg-white"
+            style={{ border: `1px solid ${colors.border}` }}
+          >
+            <h3
+              className="text-sm font-semibold mb-2"
+              style={{ color: colors.textPrimary }}
+            >
+              生成に失敗しました
+            </h3>
+            <p className="text-xs mb-4" style={{ color: colors.textSecondary }}>
+              サーバーでエラーが発生しました。時間をおいて再度お試しください。
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowGenerateError(false)}
+                className="px-3 py-1.5 rounded-lg text-xs"
+                style={{
+                  border: `1px solid ${colors.border}`,
+                  color: colors.textSecondary,
+                }}
+              >
+                閉じる
               </button>
             </div>
           </div>
