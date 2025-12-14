@@ -467,7 +467,7 @@ export default function PatientDetailPage() {
             <div className="flex items-center gap-2.5">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: colors.primary }}
+                style={{ backgroundColor: colors.bgPrimary }}
               >
                 <Heart size={20} color={colors.primary} />
               </div>
