@@ -142,6 +142,11 @@ carebrief-mobile/
 npx expo start -c
 ```
 
+```bash
+# トンネルモードで起動 - Wifi経由で繋げない場合に
+npx expo start --dev-client --tunnel
+```
+
 ## ライセンス
 
 Private - Hackathon Project
