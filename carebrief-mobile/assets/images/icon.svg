@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#5D8A72"/>
+
+  <!-- Four-leaf clover icon (white) centered -->
+  <g transform="translate(512, 512)">
+    <!-- Top-left leaf -->
+    <ellipse cx="-120" cy="-120" rx="160" ry="160" fill="rgba(255,255,255,0.85)" transform="rotate(45, -120, -120)"/>
+
+    <!-- Top-right leaf -->
+    <ellipse cx="120" cy="-120" rx="160" ry="160" fill="rgba(255,255,255,0.85)" transform="rotate(45, 120, -120)"/>
+
+    <!-- Bottom-left leaf -->
+    <ellipse cx="-120" cy="120" rx="160" ry="160" fill="rgba(255,255,255,0.85)" transform="rotate(45, -120, 120)"/>
+
+    <!-- Bottom-right leaf -->
+    <ellipse cx="120" cy="120" rx="160" ry="160" fill="rgba(255,255,255,0.85)" transform="rotate(45, 120, 120)"/>
+
+    <!-- Center diamond overlay for depth -->
+    <rect x="-100" y="-100" width="200" height="200" fill="rgba(255,255,255,0.95)" transform="rotate(45)"/>
+  </g>
+</svg>

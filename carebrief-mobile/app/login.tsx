@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
 import { useAuth } from '@/constants/AuthContext';
+import { Logo } from '@/components/Logo';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -45,8 +46,8 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.header}>
-          <View style={[styles.logo, { backgroundColor: Colors.primaryLight }]}>
-            <Feather name="heart" size={32} color={Colors.primary} />
+          <View style={styles.logo}>
+            <Logo size={72} />
           </View>
           <Text style={[styles.logoText, { color: Colors.text }]}>CareBrief</Text>
           <Text style={[styles.subtitle, { color: Colors.textMuted }]}>
@@ -145,11 +146,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   logo: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: Spacing.md,
   },
   logoText: {

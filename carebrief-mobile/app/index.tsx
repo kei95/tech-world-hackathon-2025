@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
 import { usePatient } from '@/constants/PatientContext';
+import { Logo } from '@/components/Logo';
 import { PatientCard } from '@/components/PatientCard';
 import { PatientCardSkeleton } from '@/components/Skeleton';
 import { useUsers } from '@/hooks/useUsers';
@@ -56,9 +57,7 @@ export default function PatientSelectScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]}>
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <View style={[styles.logo, { backgroundColor: Colors.primaryLight }]}>
-            <Feather name="heart" size={24} color={Colors.primary} />
-          </View>
+          <Logo size={44} />
           <Text style={[styles.logoText, { color: Colors.text }]}>CareBrief</Text>
         </View>
         <Text style={[styles.subtitle, { color: Colors.textMuted }]}>
@@ -152,14 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: Spacing.xs,
-  },
-  logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
+    gap: Spacing.sm,
   },
   logoText: {
     fontSize: 24,

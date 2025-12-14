@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FAFAF8"
+        "backgroundColor": "#5D8A72"
       },
       "package": "com.carebrief.mobile",
       "permissions": [
