@@ -39,6 +39,7 @@ export const GoalCard: React.FC<GoalCardProps> = ({
   const [reverting, setReverting] = useState<boolean>(false);
   const [completing, setCompleting] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
   const FUNCTIONS_URL =
     (import.meta as any).env?.VITE_FUNCTIONS_URL ??
     "http://localhost:54321/functions/v1";
@@ -81,9 +82,44 @@ export const GoalCard: React.FC<GoalCardProps> = ({
     [userId, goal.uuid, goal.id]
   );
 
-  const handleSave = () => {
-    onEdit(goal.id, editData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const userIdNum =
+        typeof userId === "string" ? parseInt(userId, 10) : userId;
+      const payload = {
+        user_id: userIdNum,
+        uuid: goal.uuid || stableUuid,
+        title: editData.category,
+        goal: editData.goal,
+        tasks: editData.actions.map((a) => a.text),
+        // フロントの level(red|yellow|none) を API の期待 (alert|warning|none) に合わせる
+        level:
+          editData.level === "red"
+            ? "alert"
+            : editData.level === "yellow"
+            ? "warning"
+            : "none",
+        status: goal.completed ? "done" : "pending",
+      };
+      // eslint-disable-next-line no-console
+      console.log("POST /care-plans-update payload", payload);
+      const res = await fetch(`${FUNCTIONS_URL}/care-plans-update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw new Error(`care-plans-update failed: ${res.status}`);
+      }
+      onEdit(goal.id, editData);
+      setIsEditing(false);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("care-plans-update call failed", e);
+    } finally {
+      setSaving(false);
+    }
   };
   const handleAddAction = () => {
     if (newAction.trim()) {
@@ -312,11 +348,12 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+              disabled={saving}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-60"
               style={{ backgroundColor: colors.primary }}
             >
-              <Save size={12} />
-              保存
+              {!saving && <Save size={12} />}
+              {saving ? "送信中…" : "保存"}
             </button>
           </div>
         </div>
