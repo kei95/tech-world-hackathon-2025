@@ -46,7 +46,7 @@ export default function PatientDetailPage() {
     (newLog: CareLog) => {
       setCareLogs((prev) => [newLog, ...prev]);
     },
-    [setCareLogs],
+    [setCareLogs]
   );
 
   // SSE接続
@@ -92,8 +92,8 @@ export default function PatientDetailPage() {
         r.tasks && r.tasks.length > 0
           ? r.tasks.map((t) => ({ text: t }))
           : r.description
-            ? [{ text: r.description }]
-            : [],
+          ? [{ text: r.description }]
+          : [],
     }));
     const summary =
       risks.length > 0 ? risks.map((r) => r.title).join(" / ") : "特記なし";
@@ -127,8 +127,8 @@ export default function PatientDetailPage() {
         tasks: Array.isArray(g.tasks)
           ? g.tasks
           : Array.isArray(g.actions)
-            ? g.actions.map((a: any) => a.text ?? String(a))
-            : [],
+          ? g.actions.map((a: any) => a.text ?? String(a))
+          : [],
         description: g.description,
         status: g.status,
         completed: g.completed,
@@ -154,7 +154,7 @@ export default function PatientDetailPage() {
     try {
       setCarePlanLoading(true);
       const url = `${FUNCTIONS_URL}/care-plans?user_id=${encodeURIComponent(
-        String(userId),
+        String(userId)
       )}`;
       const res = await fetch(url);
       if (!res.ok) {
@@ -220,8 +220,14 @@ export default function PatientDetailPage() {
         const plan = buildCarePlanFromRisks(data as RiskItem[]);
         setCarePlan(plan);
         setActiveTab("plan");
+        // 生成直後にサーバーの正式データを再取得
+        await loadCarePlanFromServer();
       } else {
         // 想定外のレスポンス形式時はプラン未設定のままにする
+        // 可能であればサーバー側に保存された最新を取得してみる
+        if (res.ok) {
+          await loadCarePlanFromServer();
+        }
       }
     } catch (e) {
       console.error("assess-risk call failed", e);
@@ -247,10 +253,10 @@ export default function PatientDetailPage() {
                     completed: !goal.completed,
                     completedDate: !goal.completed ? "2024年12月13日" : null,
                   }
-                : goal,
+                : goal
             ),
           }
-        : null,
+        : null
     );
   };
   const handleEditGoal = (goalId: number, data: GoalFormData) => {
@@ -259,17 +265,17 @@ export default function PatientDetailPage() {
         ? {
             ...prev,
             goals: prev.goals.map((goal) =>
-              goal.id === goalId ? { ...goal, ...data } : goal,
+              goal.id === goalId ? { ...goal, ...data } : goal
             ),
           }
-        : null,
+        : null
     );
   };
   const handleDeleteGoal = (goalId: number) => {
     setCarePlan((prev) =>
       prev
         ? { ...prev, goals: prev.goals.filter((goal) => goal.id !== goalId) }
-        : null,
+        : null
     );
   };
   const handleAddGoal = (data: GoalFormData) => {
@@ -291,7 +297,7 @@ export default function PatientDetailPage() {
               },
             ],
           }
-        : null,
+        : null
     );
   };
 
@@ -312,7 +318,10 @@ export default function PatientDetailPage() {
             <div className="flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ border: `1px solid ${colors.border}`, backgroundColor: colors.bgSecondary }}
+                style={{
+                  border: `1px solid ${colors.border}`,
+                  backgroundColor: colors.bgSecondary,
+                }}
               />
               <div className="flex items-center gap-2.5">
                 <div
@@ -320,8 +329,14 @@ export default function PatientDetailPage() {
                   style={{ backgroundColor: colors.primaryLight }}
                 />
                 <div>
-                  <div className="w-32 h-4 mb-1 rounded" style={{ backgroundColor: colors.border }} />
-                  <div className="w-48 h-3 rounded" style={{ backgroundColor: colors.border }} />
+                  <div
+                    className="w-32 h-4 mb-1 rounded"
+                    style={{ backgroundColor: colors.border }}
+                  />
+                  <div
+                    className="w-48 h-3 rounded"
+                    style={{ backgroundColor: colors.border }}
+                  />
                 </div>
               </div>
             </div>
@@ -336,8 +351,17 @@ export default function PatientDetailPage() {
           <div className="flex gap-4">
             <div className="flex-1">
               <div className="flex gap-2 mb-3">
-                <div className="w-24 h-8 rounded-lg" style={{ backgroundColor: colors.primaryLight }} />
-                <div className="w-24 h-8 rounded-lg" style={{ backgroundColor: 'white', border: `1px solid ${colors.border}` }} />
+                <div
+                  className="w-24 h-8 rounded-lg"
+                  style={{ backgroundColor: colors.primaryLight }}
+                />
+                <div
+                  className="w-24 h-8 rounded-lg"
+                  style={{
+                    backgroundColor: "white",
+                    border: `1px solid ${colors.border}`,
+                  }}
+                />
               </div>
 
               <div className="space-y-2.5">
@@ -352,12 +376,21 @@ export default function PatientDetailPage() {
                 className="bg-white rounded-xl p-3"
                 style={{ border: `1px solid ${colors.border}` }}
               >
-                <div className="w-24 h-4 mb-2.5 rounded" style={{ backgroundColor: colors.border }} />
+                <div
+                  className="w-24 h-4 mb-2.5 rounded"
+                  style={{ backgroundColor: colors.border }}
+                />
                 <div className="space-y-2">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded" style={{ backgroundColor: colors.border }} />
-                      <div className="flex-1 h-3 rounded" style={{ backgroundColor: colors.border }} />
+                      <div
+                        className="w-4 h-4 rounded"
+                        style={{ backgroundColor: colors.border }}
+                      />
+                      <div
+                        className="flex-1 h-3 rounded"
+                        style={{ backgroundColor: colors.border }}
+                      />
                     </div>
                   ))}
                 </div>
