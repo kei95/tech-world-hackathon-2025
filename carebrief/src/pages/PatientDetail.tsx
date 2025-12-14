@@ -47,7 +47,7 @@ export default function PatientDetailPage() {
     (newLog: CareLog) => {
       setCareLogs((prev) => [newLog, ...prev]);
     },
-    [setCareLogs]
+    [setCareLogs],
   );
 
   // SSE接続
@@ -93,8 +93,8 @@ export default function PatientDetailPage() {
         r.tasks && r.tasks.length > 0
           ? r.tasks.map((t) => ({ text: t }))
           : r.description
-          ? [{ text: r.description }]
-          : [],
+            ? [{ text: r.description }]
+            : [],
     }));
     const summary =
       risks.length > 0 ? risks.map((r) => r.title).join(" / ") : "特記なし";
@@ -128,8 +128,8 @@ export default function PatientDetailPage() {
         tasks: Array.isArray(g.tasks)
           ? g.tasks
           : Array.isArray(g.actions)
-          ? g.actions.map((a: any) => a.text ?? String(a))
-          : [],
+            ? g.actions.map((a: any) => a.text ?? String(a))
+            : [],
         description: g.description,
         status: g.status,
         completed: g.completed,
@@ -155,7 +155,7 @@ export default function PatientDetailPage() {
     try {
       setCarePlanLoading(true);
       const url = `${FUNCTIONS_URL}/care-plans?user_id=${encodeURIComponent(
-        String(userId)
+        String(userId),
       )}`;
       const res = await fetch(url);
       if (!res.ok) {
@@ -223,7 +223,7 @@ export default function PatientDetailPage() {
         // 5xxはリトライ、3回目で諦める
         if (res.status >= 500) {
           console.warn(
-            `assess-risk internal error: ${res.status} (attempt ${attempt})`
+            `assess-risk internal error: ${res.status} (attempt ${attempt})`,
           );
           if (attempt < 3) {
             await new Promise((r) => setTimeout(r, 600));
@@ -283,10 +283,10 @@ export default function PatientDetailPage() {
                     completed: !goal.completed,
                     completedDate: !goal.completed ? "2024年12月13日" : null,
                   }
-                : goal
+                : goal,
             ),
           }
-        : null
+        : null,
     );
   };
   const handleEditGoal = (goalId: number, data: GoalFormData) => {
@@ -295,17 +295,17 @@ export default function PatientDetailPage() {
         ? {
             ...prev,
             goals: prev.goals.map((goal) =>
-              goal.id === goalId ? { ...goal, ...data } : goal
+              goal.id === goalId ? { ...goal, ...data } : goal,
             ),
           }
-        : null
+        : null,
     );
   };
   const handleDeleteGoal = (goalId: number) => {
     setCarePlan((prev) =>
       prev
         ? { ...prev, goals: prev.goals.filter((goal) => goal.id !== goalId) }
-        : null
+        : null,
     );
   };
   const handleAddGoal = (data: GoalFormData) => {
@@ -327,7 +327,7 @@ export default function PatientDetailPage() {
               },
             ],
           }
-        : null
+        : null,
     );
   };
 
@@ -467,7 +467,7 @@ export default function PatientDetailPage() {
             <div className="flex items-center gap-2.5">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: "#FFE8F2" }}
+                style={{ backgroundColor: colors.primary }}
               >
                 <Heart size={20} color={colors.primary} />
               </div>
