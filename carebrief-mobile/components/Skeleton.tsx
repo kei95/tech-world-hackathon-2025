@@ -117,6 +117,25 @@ export function SummaryCardSkeleton() {
   );
 }
 
+// Log edit card skeleton
+export function LogEditSkeleton() {
+  return (
+    <View style={styles.logEditContainer}>
+      <View style={[styles.logEditCard, { backgroundColor: Colors.backgroundElevated }]}>
+        <View style={styles.logEditHeader}>
+          <Skeleton width={16} height={16} borderRadius={8} />
+          <Skeleton width={180} height={12} style={{ marginLeft: Spacing.xs }} />
+        </View>
+        <View style={styles.mt12}>
+          <Skeleton width="100%" height={14} style={styles.mt8} />
+          <Skeleton width="95%" height={14} style={styles.mt8} />
+          <Skeleton width="88%" height={14} style={styles.mt8} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: Colors.border,
@@ -173,6 +192,17 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logEditContainer: {
+    padding: Spacing.lg,
+  },
+  logEditCard: {
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  logEditHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },

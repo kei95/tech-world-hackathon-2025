@@ -14,56 +14,96 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
 import { usePatient } from '@/constants/PatientContext';
+import { useAuth } from '@/constants/AuthContext';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
+import { LogEditSkeleton } from '@/components/Skeleton';
+import { logsPreview, logsConfirm } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 type Mode = 'input' | 'processing' | 'edit';
 
 export default function LogScreen() {
-  const [mode, setMode] = useState<Mode>('input');
-  const [transcription, setTranscription] = useState('');
-  const [summary, setSummary] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isVoiceEntry, setIsVoiceEntry] = useState(false);
+  const { selectedPatient } = usePatient();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const handleRecordingComplete = (uri: string, duration: number) => {
+  const [mode, setMode] = useState<Mode>('input');
+  const [summary, setSummary] = useState('');
+  const [isVoiceEntry, setIsVoiceEntry] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleRecordingComplete = async (uri: string, duration: number) => {
     console.log('Recording completed:', uri, duration);
-    setIsProcessing(true);
     setIsVoiceEntry(true);
     setMode('processing');
-  };
+    setError(null);
 
-  const handleTranscriptionComplete = (text: string) => {
-    setTranscription(text);
-    // Simulate AI summary generation
-    setTimeout(() => {
-      const mockSummary = '夕食8割摂取（お粥・煮物）。服薬確認済み。就寝前に足の痛みあり、マッサージで対応。夜間トイレ2回、移動は安定。';
-      setSummary(mockSummary);
-      setIsProcessing(false);
+    try {
+      // Call logsPreview API with audio file
+      const result = await logsPreview(uri);
+      setSummary(result.text);
       setMode('edit');
-    }, 1500);
+    } catch (err) {
+      console.error('Failed to process audio:', err);
+      setError('音声の処理に失敗しました。もう一度お試しください。');
+      setMode('input');
+      Alert.alert('エラー', '音声の処理に失敗しました。もう一度お試しください。');
+    }
   };
 
-  const handleSave = () => {
-    Alert.alert(
-      '保存完了',
-      '介護記録を保存しました。',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setMode('input');
-            setTranscription('');
-            setSummary('');
+  const handleSave = async () => {
+    if (!selectedPatient || !user) {
+      Alert.alert('エラー', '患者または介護者の情報が不足しています。');
+      return;
+    }
+
+    if (!summary.trim()) {
+      Alert.alert('エラー', '記録内容を入力してください。');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      // Call logsConfirm API to save the log
+      await logsConfirm({
+        userId: parseInt(selectedPatient.id, 10),
+        caregiverId: parseInt(user.id, 10),
+        content: summary.trim(),
+      });
+
+      // Invalidate logs query to refresh the history
+      queryClient.invalidateQueries({ queryKey: ['logs', selectedPatient.id] });
+
+      Alert.alert(
+        '保存完了',
+        '介護記録を保存しました。',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setMode('input');
+              setSummary('');
+              setIsVoiceEntry(false);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (err) {
+      console.error('Failed to save log:', err);
+      setError('記録の保存に失敗しました。もう一度お試しください。');
+      Alert.alert('エラー', '記録の保存に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
     setMode('input');
-    setTranscription('');
     setSummary('');
+    setIsVoiceEntry(false);
   };
 
   const renderInputMode = () => (
@@ -76,7 +116,6 @@ export default function LogScreen() {
         </Text>
         <VoiceRecorder
           onRecordingComplete={handleRecordingComplete}
-          onTranscriptionComplete={handleTranscriptionComplete}
         />
       </View>
 
@@ -107,13 +146,13 @@ export default function LogScreen() {
 
   const renderProcessingMode = () => (
     <View style={styles.processingContainer}>
-      <ActivityIndicator size="large" color={Colors.primary} />
-      <Text style={[styles.processingText, { color: Colors.text }]}>
-        AIが音声を処理中...
-      </Text>
-      <Text style={[styles.processingSubtext, { color: Colors.textMuted }]}>
-        要約を生成しています
-      </Text>
+      <View style={styles.processingHeader}>
+        <ActivityIndicator size="small" color={Colors.primary} />
+        <Text style={[styles.processingText, { color: Colors.text }]}>
+          AIが要約を生成中...
+        </Text>
+      </View>
+      <LogEditSkeleton />
     </View>
   );
 
@@ -153,16 +192,30 @@ export default function LogScreen() {
           style={[styles.cancelButton, { borderColor: Colors.border }]}
           onPress={handleCancel}
           activeOpacity={0.7}
+          disabled={isSaving}
         >
-          <Text style={[styles.cancelButtonText, { color: Colors.textSecondary }]}>キャンセル</Text>
+          <Text style={[styles.cancelButtonText, { color: isSaving ? Colors.textMuted : Colors.textSecondary }]}>
+            キャンセル
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: Colors.primary }, Shadows.md]}
+          style={[
+            styles.saveButton,
+            { backgroundColor: isSaving ? Colors.primaryMuted : Colors.primary },
+            Shadows.md,
+          ]}
           onPress={handleSave}
           activeOpacity={0.8}
+          disabled={isSaving}
         >
-          <Feather name="check" size={20} color={Colors.textInverse} />
-          <Text style={[styles.saveButtonText, { color: Colors.textInverse }]}>保存</Text>
+          {isSaving ? (
+            <ActivityIndicator size="small" color={Colors.textInverse} />
+          ) : (
+            <Feather name="check" size={20} color={Colors.textInverse} />
+          )}
+          <Text style={[styles.saveButtonText, { color: Colors.textInverse }]}>
+            {isSaving ? '保存中...' : '保存'}
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -227,18 +280,18 @@ const styles = StyleSheet.create({
   },
   processingContainer: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  processingHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.xl,
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
   },
   processingText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: Spacing.lg,
-  },
-  processingSubtext: {
     fontSize: 14,
-    marginTop: Spacing.xs,
+    fontWeight: '500',
   },
   editContainer: {
     flex: 1,

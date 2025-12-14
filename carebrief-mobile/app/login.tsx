@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -104,9 +105,13 @@ export default function LoginScreen() {
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            <Text style={[styles.loginButtonText, { color: Colors.textInverse }]}>
-              {isLoading ? 'ログイン中...' : 'ログイン'}
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color={Colors.textInverse} />
+            ) : (
+              <Text style={[styles.loginButtonText, { color: Colors.textInverse }]}>
+                ログイン
+              </Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.forgotPassword}>

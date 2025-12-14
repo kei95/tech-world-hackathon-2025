@@ -2,14 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAudioRecorder, RecordingPresets, AudioModule } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/Colors';
 
 interface VoiceRecorderProps {
   onRecordingComplete?: (uri: string, duration: number) => void;
-  onTranscriptionComplete?: (text: string) => void;
 }
 
-export function VoiceRecorder({ onRecordingComplete, onTranscriptionComplete }: VoiceRecorderProps) {
+export function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -92,26 +92,26 @@ export function VoiceRecorder({ onRecordingComplete, onTranscriptionComplete }: 
       allowsRecording: false,
     });
 
-    const uri = recorder.uri;
-    console.log('Recording stopped and stored at', uri);
+    const tempUri = recorder.uri;
+    console.log('Recording stopped and stored at', tempUri);
 
-    if (onRecordingComplete && uri) {
-      onRecordingComplete(uri, recordingDuration);
-    }
-
-    // Simulate transcription (in real app, send to Whisper API)
-    simulateTranscription();
-  };
-
-  const simulateTranscription = () => {
-    // Simulating API delay
-    setTimeout(() => {
-      const mockTranscription = '本日の夕食は8割ほど摂取されました。お粥と煮物を好んで食べていました。食後に服薬確認を行い、問題なく服用されました。就寝前に少し足の痛みを訴えていましたが、マッサージ後は落ち着かれました。夜間のトイレは2回で、ふらつきなく移動できています。';
-
-      if (onTranscriptionComplete) {
-        onTranscriptionComplete(mockTranscription);
+    if (onRecordingComplete && tempUri) {
+      try {
+        // Copy to a persistent location to avoid file being cleaned up
+        const filename = `recording-${Date.now()}.m4a`;
+        const persistentUri = `${FileSystem.documentDirectory}${filename}`;
+        await FileSystem.copyAsync({
+          from: tempUri,
+          to: persistentUri,
+        });
+        console.log('Recording copied to', persistentUri);
+        onRecordingComplete(persistentUri, recordingDuration);
+      } catch (err) {
+        console.error('Failed to copy recording:', err);
+        // Fallback to original URI
+        onRecordingComplete(tempUri, recordingDuration);
       }
-    }, 2000);
+    }
   };
 
   return (

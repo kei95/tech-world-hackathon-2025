@@ -1,3 +1,4 @@
+import * as FileSystem from "expo-file-system/legacy";
 import type { Patient, CareLog, CarePlan, AlertLevel } from "./types";
 
 // API base URL - should be configured via environment variable in production
@@ -171,23 +172,24 @@ export async function fetchLogs(
 
 // Audio log preview
 export async function logsPreview(audioUri: string): Promise<{ text: string }> {
-  const formData = new FormData();
+  // Use FileSystem.uploadAsync for proper file upload in React Native
+  const uploadResult = await FileSystem.uploadAsync(
+    `${API_URL}/functions/v1/logs-preview`,
+    audioUri,
+    {
+      httpMethod: "POST",
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: "audio",
+      mimeType: "audio/m4a",
+      parameters: {},
+    }
+  );
 
-  // For React Native, we need to use the proper format for file upload
-  formData.append("audio", {
-    uri: audioUri,
-    name: "audio.m4a",
-    type: "audio/m4a",
-  } as any);
-
-  const response = await fetch(`${API_URL}/functions/v1/logs-preview`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
+  if (uploadResult.status !== 200) {
     throw new Error("Failed to preview log");
   }
-  return response.json();
+
+  return JSON.parse(uploadResult.body);
 }
 
 // Log confirmation (save to DB)
@@ -195,7 +197,7 @@ export async function logsConfirm(data: {
   userId: number;
   caregiverId: number;
   content: string;
-}): Promise<{ success: boolean; logId: number }> {
+}): Promise<{ success: boolean; logId?: number }> {
   const response = await fetch(`${API_URL}/functions/v1/logs-confirm`, {
     method: "POST",
     headers: {
@@ -206,7 +208,19 @@ export async function logsConfirm(data: {
   if (!response.ok) {
     throw new Error("Failed to confirm log");
   }
-  return response.json();
+
+  // Handle empty response or non-JSON response
+  const text = await response.text();
+  if (!text) {
+    return { success: true };
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    // If response is not JSON but request succeeded, treat as success
+    return { success: true };
+  }
 }
 
 // SSE stream URL

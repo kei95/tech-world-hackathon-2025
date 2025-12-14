@@ -17,6 +17,7 @@ import { CarePlanSection } from "../components/patientDetail/CarePlanSection";
 import type { CareLog, CarePlan, GoalFormData } from "../types";
 import { useUserDetail } from "../hooks/useUserDetail";
 import { useLogsStream } from "../hooks/useLogsStream";
+import { LogCardSkeleton, CarePlanSkeleton } from "../components/ui/Skeleton";
 
 type TabType = "logs" | "plan";
 
@@ -297,10 +298,73 @@ export default function PatientDetailPage() {
   if (loading) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: colors.bgSecondary }}
+        style={{
+          backgroundColor: colors.bgSecondary,
+          minHeight: "100vh",
+          fontFamily: "system-ui, sans-serif",
+        }}
       >
-        <p style={{ color: colors.textMuted }}>読み込み中...</p>
+        <header
+          className="bg-white px-4 py-3 sticky top-0 z-10"
+          style={{ borderBottom: `1px solid ${colors.border}` }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ border: `1px solid ${colors.border}`, backgroundColor: colors.bgSecondary }}
+              />
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-10 h-10 rounded-xl"
+                  style={{ backgroundColor: colors.primaryLight }}
+                />
+                <div>
+                  <div className="w-32 h-4 mb-1 rounded" style={{ backgroundColor: colors.border }} />
+                  <div className="w-48 h-3 rounded" style={{ backgroundColor: colors.border }} />
+                </div>
+              </div>
+            </div>
+            <div
+              className="w-32 h-8 rounded-xl"
+              style={{ backgroundColor: colors.border }}
+            />
+          </div>
+        </header>
+
+        <div className="p-4">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="flex gap-2 mb-3">
+                <div className="w-24 h-8 rounded-lg" style={{ backgroundColor: colors.primaryLight }} />
+                <div className="w-24 h-8 rounded-lg" style={{ backgroundColor: 'white', border: `1px solid ${colors.border}` }} />
+              </div>
+
+              <div className="space-y-2.5">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <LogCardSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+
+            <div className="w-72 space-y-3 shrink-0">
+              <div
+                className="bg-white rounded-xl p-3"
+                style={{ border: `1px solid ${colors.border}` }}
+              >
+                <div className="w-24 h-4 mb-2.5 rounded" style={{ backgroundColor: colors.border }} />
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded" style={{ backgroundColor: colors.border }} />
+                      <div className="flex-1 h-3 rounded" style={{ backgroundColor: colors.border }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -453,26 +517,7 @@ export default function PatientDetailPage() {
                     />
                   </div>
                 ) : carePlanLoading ? (
-                  <div
-                    className="bg-white rounded-xl p-6 text-center"
-                    style={{ border: `1px solid ${colors.border}` }}
-                  >
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
-                      style={{ backgroundColor: colors.bgSecondary }}
-                    >
-                      <Sparkles size={24} color={colors.textMuted} />
-                    </div>
-                    <h3
-                      className="text-sm font-semibold mb-2"
-                      style={{ color: colors.textPrimary }}
-                    >
-                      介護計画を読み込み中…
-                    </h3>
-                    <p className="text-xs" style={{ color: colors.textMuted }}>
-                      少々お待ちください
-                    </p>
-                  </div>
+                  <CarePlanSkeleton />
                 ) : (
                   <div
                     className="bg-white rounded-xl p-6 text-center"
